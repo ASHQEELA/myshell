@@ -1,0 +1,9 @@
+# No external dependencies yet
+# Example for future:
+# rich
+# prompt_toolkit
+# Cross-platform readline support
+readline; sys_platform != "win32"
+
+# Windows readline replacement
+pyreadline3; sys_platform == "win32"
