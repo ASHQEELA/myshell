@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # No external dependencies yet
 # Example for future:
 # rich
@@ -7,3 +8,9 @@ readline; sys_platform != "win32"
 
 # Windows readline replacement
 pyreadline3; sys_platform == "win32"
+=======
+# The shell itself needs only the Python standard library.
+# These packages are for the tests and the lint check.
+pytest>=7.0
+pyflakes>=3.0
+>>>>>>> 9bfa749 (new upgraded versions)
