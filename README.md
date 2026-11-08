@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+
 # PyShell - A Custom Python Shell
 
 **PyShell** is a lightweight, extensible command-line shell written entirely in Python.  
@@ -49,7 +50,9 @@ PyShell comes with these built-in commands:
 git clone <repo-url>
 cd py-shell
 ```
+
 =======
+
 # myshell
 
 A Unix-style shell written in Python. It runs on Linux and macOS with full job control. It also runs on Windows through a simpler fallback.
@@ -96,12 +99,14 @@ With uv and a virtual environment:
 ## Features
 
 Commands and operators
+
 - Pipes: `a | b`
 - Lists: `a; b`, `a && b`, `a || b`
 - Background jobs: `a &`
 - Comments with `#`
 
 Quoting and expansion
+
 - Single quotes, double quotes and backslash escapes
 - Variables: `$X`, `${X}`, `$?`, `$$`
 - Command substitution: `$(cmd)` and backticks
@@ -110,18 +115,21 @@ Quoting and expansion
 - Assignments: `NAME=value`, and `NAME=value cmd` for one command
 
 Redirection
+
 - `< > >> 2> 2>> &> &>>`
 - `2>&1` and `1>&2`, applied left to right
 - Here-strings: `<<<`
 - Here-documents: `<<EOF` and `<<-EOF`. A quoted delimiter such as `<<'EOF'` turns expansion off.
 
 Control flow
+
 - `if`, `elif`, `else`, `fi`
 - `while`, `until`, `for NAME in WORDS`, with `do` and `done`
 - `break N` and `continue N`
 - Blocks work on one line or across many lines
 
 Builtins
+
 - `echo pwd cd exit alias type export unset source .`
 - `jobs fg bg wait`
 - `test` and `[ ]`: file, string and number checks, and `!`
@@ -129,6 +137,7 @@ Builtins
 - `guide`: lessons, cheat sheet and tips
 
 Interactive use
+
 - Job control: Ctrl+C, Ctrl+Z, `fg`, `bg`
 - Tab completion for commands and paths
 - History saved in `~/.custom_shell_history`, limited to 1000 entries
@@ -140,9 +149,10 @@ Interactive use
 Pip is a small original character who lives in the shell.
 
     ,---.   .--------------------------------------.
-   ( ^ ^ )  | Hi, I am Pip, your shell guide.       |
-    \ v /   '--------------------------------------'
-    (_@_)>
+
+( ^ ^ ) | Hi, I am Pip, your shell guide. |
+\ v / '--------------------------------------'
+(_@_)>
 
 - Greets you at startup with a tip. Only on a real terminal.
 - `guide` opens a menu of 7 lessons. Each step shows a command. Press Enter to run it, `s` to skip, `q` to stop.
@@ -154,16 +164,16 @@ Pip is a small original character who lives in the shell.
 
 ## Prompt escapes
 
-| Escape | Meaning |
-| --- | --- |
-| `\w` | current directory, `~` for home |
-| `\W` | last part of the directory |
-| `\u` `\h` | user name, host name |
-| `\$` | `$`, or `#` for root |
-| `\j` | running jobs |
-| `\?` | exit status of the last command |
-| `\n` `\e` `\\` | newline, escape, backslash |
-| `\[` `\]` | wrap colors so line editing counts width correctly |
+| Escape         | Meaning                                            |
+| -------------- | -------------------------------------------------- |
+| `\w`           | current directory, `~` for home                    |
+| `\W`           | last part of the directory                         |
+| `\u` `\h`      | user name, host name                               |
+| `\$`           | `$`, or `#` for root                               |
+| `\j`           | running jobs                                       |
+| `\?`           | exit status of the last command                    |
+| `\n` `\e` `\\` | newline, escape, backslash                         |
+| `\[` `\]`      | wrap colors so line editing counts width correctly |
 
 Example `~/.myshellrc`:
 
@@ -173,22 +183,22 @@ Example `~/.myshellrc`:
 
 ## Layout
 
-| File | Job |
-| --- | --- |
-| `cli.py` | entry point, interactive loop |
-| `lexer.py` | text to tokens |
-| `parser.py` | tokens to a tree |
-| `expand.py` | variables, substitution, math, globbing |
-| `arith.py` | the `$((...))` evaluator |
-| `heredoc.py` | here-document bodies |
-| `executor.py` | runs the tree with fork and pipes |
-| `jobs.py` | process groups and job control |
-| `builtins.py` | builtin commands |
-| `completion.py` | tab completion |
-| `prompt.py` | prompt escapes |
-| `guide.py` | Pip: lessons, hints, greeting |
-| `state.py` | variables, aliases, history, status |
-| `compat.py` | platform checks |
+| File            | Job                                     |
+| --------------- | --------------------------------------- |
+| `cli.py`        | entry point, interactive loop           |
+| `lexer.py`      | text to tokens                          |
+| `parser.py`     | tokens to a tree                        |
+| `expand.py`     | variables, substitution, math, globbing |
+| `arith.py`      | the `$((...))` evaluator                |
+| `heredoc.py`    | here-document bodies                    |
+| `executor.py`   | runs the tree with fork and pipes       |
+| `jobs.py`       | process groups and job control          |
+| `builtins.py`   | builtin commands                        |
+| `completion.py` | tab completion                          |
+| `prompt.py`     | prompt escapes                          |
+| `guide.py`      | Pip: lessons, hints, greeting           |
+| `state.py`      | variables, aliases, history, status     |
+| `compat.py`     | platform checks                         |
 
 ## Limits
 
@@ -198,4 +208,3 @@ Example `~/.myshellrc`:
 - Pipes, redirects and `&` after `fi` or `done` are errors.
 - `test` has no `-a`, `-o` or parentheses.
 - On Windows, command substitution and job control are unavailable.
->>>>>>> 9bfa749 (new upgraded versions)
