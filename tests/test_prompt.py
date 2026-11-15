@@ -2,6 +2,8 @@ import os
 
 import pytest
 
+from conftest import unix_only
+
 from myshell.prompt import build_prompt, expand_prompt, short_path
 from myshell.state import ShellState
 
@@ -22,6 +24,12 @@ def home(tmp_path, monkeypatch):
 @pytest.fixture
 def st():
     return ShellState()
+
+
+def mark(text):
+    """The readline markers are left out on macOS."""
+    from myshell import prompt
+    return text if prompt.MARKERS else text.replace("\x01", "").replace("\x02", "")
 
 
 class TestShortPath:
@@ -68,7 +76,7 @@ class TestEscapes:
         assert expand_prompt(r"a\nb\e[0m", st) == "a\nb\x1b[0m"
 
     def test_color_wrappers_become_readline_markers(self, st):
-        assert expand_prompt(r"\[x\]", st) == "\x01x\x02"
+        assert expand_prompt(r"\[x\]", st) == mark("\x01x\x02")
 
     def test_backslash_and_unknown_escapes(self, st):
         assert expand_prompt(r"\\ \q", st) == "\\ \\q"
@@ -79,6 +87,7 @@ class TestEscapes:
     def test_job_count(self, st):
         assert expand_prompt(r"\j", st) == "0"
 
+    @unix_only
     def test_deleted_directory_does_not_crash(self, tmp_path, monkeypatch, st):
         gone = tmp_path / "gone"
         gone.mkdir()
@@ -100,12 +109,12 @@ class TestDefaultPrompt:
 
     def test_color_terminal(self, home, st, monkeypatch):
         monkeypatch.setenv("TERM", "xterm")
-        assert build_prompt(st) == f"\x01\x1b[1;32m\x02~\x01\x1b[0m\x02 {CH} "
+        assert build_prompt(st) == mark(f"\x01\x1b[1;32m\x02~\x01\x1b[0m\x02 {CH} ")
 
     def test_failure_is_red_on_a_color_terminal(self, home, st, monkeypatch):
         monkeypatch.setenv("TERM", "xterm")
         st.last_status = 3
-        assert build_prompt(st).startswith("\x01\x1b[1;31m\x02[3]")
+        assert build_prompt(st).startswith(mark("\x01\x1b[1;31m\x02[3]"))
 
     def test_no_color_turns_color_off(self, home, st, monkeypatch):
         monkeypatch.setenv("TERM", "xterm")

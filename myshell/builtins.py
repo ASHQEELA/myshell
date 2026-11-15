@@ -1,12 +1,14 @@
 """Builtin commands. Each takes (state, args, stdout, stderr) and returns a status."""
 import os
 import re
-import readline
 import shutil
 from typing import Callable, Dict, List, Optional, TextIO
 
-from . import compat
-from .errors import BreakLoop, ContinueLoop, ShellError, ShellExit
+from .paths import expand_user
+from . import compat, history
+from .coreutils import PORTABLE
+from .more_builtins import EXTRA_BUILTINS, unescape
+from .errors import BreakLoop, ContinueLoop, ReturnFromFunction, ShellError, ShellExit
 from .state import ShellState
 
 
@@ -15,7 +17,16 @@ Builtin = Callable[[ShellState, List[str], TextIO, TextIO], int]
 
 
 def builtin_echo(state: ShellState, args: List[str], stdout: TextIO, stderr: TextIO) -> int:
-    print(" ".join(args), file=stdout)
+    newline, escapes = True, False
+    while args and re.fullmatch(r"-[neE]+", args[0]):
+        newline = newline and "n" not in args[0]
+        if "e" in args[0]:
+            escapes = True
+        if "E" in args[0]:
+            escapes = False
+        args = args[1:]
+    text = " ".join(args)
+    stdout.write((unescape(text) if escapes else text) + ("\n" if newline else ""))
     return 0
 
 
@@ -48,7 +59,7 @@ def builtin_cd(state: ShellState, args: List[str], stdout: TextIO, stderr: TextI
     except OSError:
         old = os.environ.get("PWD", "")
     try:
-        os.chdir(os.path.expanduser(target))
+        os.chdir(expand_user(target))
     except OSError as e:
         print(f"cd: {target}: {e.strerror}", file=stderr)
         return 1
@@ -91,22 +102,44 @@ def builtin_alias(state: ShellState, args: List[str], stdout: TextIO, stderr: Te
     return status
 
 
+def find_builtin(name: str) -> Optional[Builtin]:
+    """A builtin by name. The portable commands (ls, cat, ...) only count when the system
+    has no program of that name, or when MYSHELL_PORTABLE=1 asks for them."""
+    func = BUILTINS.get(name)
+    if func is not None:
+        return func
+    func = PORTABLE.get(name)
+    if func is not None and (os.environ.get("MYSHELL_PORTABLE") == "1"
+                             or shutil.which(name) is None):
+        return func
+    return None
+
+
+def builtin_names() -> List[str]:
+    return sorted(set(BUILTINS) | {n for n in PORTABLE if find_builtin(n)})
+
+
+def describe(state: ShellState, name: str) -> Optional[str]:
+    """How the shell would run name: an alias, a function, a builtin or a program."""
+    if name in state.aliases:
+        return f"{name} is an alias for '{state.aliases[name]}'"
+    if name in state.functions:
+        return f"{name} is a shell function"
+    if find_builtin(name):
+        return f"{name} is a shell builtin"
+    exe = shutil.which(name)
+    return f"{name} is {exe}" if exe else None
+
+
 def builtin_type(state: ShellState, args: List[str], stdout: TextIO, stderr: TextIO) -> int:
     if not args:
         print("type: missing argument", file=stderr)
         return 1
-    name = args[0]
-    if name in state.aliases:
-        print(f"{name} is an alias for '{state.aliases[name]}'", file=stdout)
-    elif name in BUILTINS:
-        print(f"{name} is a shell builtin", file=stdout)
-    else:
-        exe = shutil.which(name)
-        if exe:
-            print(f"{name} is {exe}", file=stdout)
-        else:
-            print(f"{name}: not found", file=stderr)
-            return 1
+    text = describe(state, args[0])
+    if text is None:
+        print(f"{args[0]}: not found", file=stderr)
+        return 1
+    print(text, file=stdout)
     return 0
 
 
@@ -215,8 +248,13 @@ def builtin_export(state: ShellState, args: List[str], stdout: TextIO, stderr: T
 
 def builtin_unset(state: ShellState, args: List[str], stdout: TextIO, stderr: TextIO) -> int:
     status = 0
+    functions = False
+    if args and args[0] in ("-f", "-v"):
+        functions, args = args[0] == "-f", args[1:]
     for name in args:
-        if NAME_RE.fullmatch(name):
+        if functions:
+            state.functions.pop(name, None)
+        elif NAME_RE.fullmatch(name):
             state.unset_variable(name)
         else:
             print(f"unset: `{name}': not a valid identifier", file=stderr)
@@ -354,18 +392,18 @@ def run_script(state: ShellState, text: str, label: str, stderr: TextIO) -> int:
 
 def builtin_history(state: ShellState, args: List[str], stdout: TextIO, stderr: TextIO) -> int:
     """history [N] | -c | -d N | -w [file] | -r [file]"""
-    total = readline.get_current_history_length()
+    total = history.length()
     if not args or args[0].isdigit():
         if len(args) > 1:
             print("history: too many arguments", file=stderr)
             return 1
         start = max(0, total - int(args[0])) if args else 0
         for k in range(start + 1, total + 1):
-            print(f"{k:5d}  {readline.get_history_item(k)}", file=stdout)
+            print(f"{k:5d}  {history.item(k)}", file=stdout)
         return 0
     flag = args[0]
     if flag == "-c":
-        readline.clear_history()
+        history.clear()
         return 0
     if flag == "-d":
         if len(args) < 2:
@@ -378,15 +416,15 @@ def builtin_history(state: ShellState, args: List[str], stdout: TextIO, stderr: 
         if not 1 <= position <= total:
             print(f"history: {position}: history position out of range", file=stderr)
             return 1
-        readline.remove_history_item(position - 1)
+        history.remove(position)
         return 0
     if flag in ("-w", "-r"):
         path = args[1] if len(args) > 1 else state.history_file
         try:
             if flag == "-w":
-                readline.write_history_file(path)
+                history.write(path)
             else:
-                readline.read_history_file(path)
+                history.read(path)
         except OSError as e:
             print(f"history: {path}: {e.strerror}", file=stderr)
             return 1
@@ -398,22 +436,33 @@ def builtin_history(state: ShellState, args: List[str], stdout: TextIO, stderr: 
     return 1
 
 
-def source_file(state: ShellState, path: str, stderr: TextIO) -> int:
-    """Run each line of a file in the current shell."""
+def source_file(state: ShellState, path: str, stderr: TextIO,
+                args: Optional[List[str]] = None) -> int:
+    """Run each line of a file in the current shell. Extra args become $1, $2, ... meanwhile."""
     try:
         with open(path) as f:
             text = f.read()
     except OSError as e:
         print(f"source: {path}: {e.strerror}", file=stderr)
         return 1
-    return run_script(state, text, path, stderr)
+    saved = state.positional
+    if args:
+        state.positional = list(args)
+    state.func_depth += 1  # return works inside a sourced file
+    try:
+        return run_script(state, text, path, stderr)
+    except ReturnFromFunction as r:
+        return r.status
+    finally:
+        state.func_depth -= 1
+        state.positional = saved
 
 
 def builtin_source(state: ShellState, args: List[str], stdout: TextIO, stderr: TextIO) -> int:
     if not args:
         print("source: filename argument required", file=stderr)
         return 2
-    return source_file(state, args[0], stderr)
+    return source_file(state, args[0], stderr, args[1:])
 
 
 BUILTINS: Dict[str, Builtin] = {
@@ -438,3 +487,4 @@ BUILTINS: Dict[str, Builtin] = {
     "break": builtin_break,
     "continue": builtin_continue,
 }
+BUILTINS.update(EXTRA_BUILTINS)

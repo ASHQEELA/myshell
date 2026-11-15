@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "myshell"
+version = "0.2.0"
+description = "A Unix-style shell written in Python, with a built-in guide."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+keywords = ["shell", "education", "terminal"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Environment :: Console",
+    "Topic :: System :: Shells",
+]
+# The shell runs without this package. It adds Ctrl+R search, suggestions and colors.
+dependencies = ["prompt_toolkit>=3.0.36"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "pyflakes>=3.0"]
+
+[project.scripts]
+myshell = "myshell.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["myshell"]
+
+[tool.hatch.build.targets.sdist]
+include = ["myshell", "tests", "shell.py", "README.md", "pytest.ini", "requirements.txt"]
