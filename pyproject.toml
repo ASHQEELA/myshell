@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "myshell"
+name = "myshell-py"
 version = "0.2.0"
 description = "A Unix-style shell written in Python, with a built-in guide."
 readme = "README.md"
