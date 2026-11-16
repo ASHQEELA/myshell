@@ -23,6 +23,7 @@ dev = ["pytest>=7.0", "pyflakes>=3.0"]
 
 [project.scripts]
 myshell = "myshell.cli:main"
+myshell-py = "myshell.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["myshell"]
