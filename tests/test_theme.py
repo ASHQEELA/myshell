@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-
+from conftest import unix_only
 from myshell import theme
 from myshell.prompt import build_prompt
 from myshell.more_builtins import builtin_theme
@@ -154,6 +154,7 @@ class TestBuiltin:
 
 class TestWhyNoColor:
     def test_reasons(self, home, monkeypatch):
+        monkeypatch.setattr(theme, "_is_windows", lambda: False)  # Windows words its message differently
         monkeypatch.setenv("TERM", "xterm")
         monkeypatch.delenv("NO_COLOR", raising=False)
         assert theme.colors_off_reason() == ""
@@ -227,6 +228,7 @@ class TestTextColor:
         assert theme.text_start() == ""
 
 
+@unix_only
 def test_command_output_is_tinted_in_a_real_terminal(pty_shell):
     s = pty_shell({"TERM": "xterm", "MYSHELL_THEME": "forest", "MYSHELL_EDITOR": "basic"})
     seen = s.expect(f"{CH} ")
