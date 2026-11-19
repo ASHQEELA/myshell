@@ -44,6 +44,9 @@ class Completer:
         if text.startswith("$"):
             return self.variable_matches(text)
         before = before.rstrip()
+        if before == "theme":
+            from . import theme
+            return sorted(n for n in theme.names() + ["reset"] if n.startswith(text))
         at_command = (before == "" or (before.endswith(COMMAND_PREFIXES)
                                        and not before.endswith(">")))
         if at_command and "/" not in text and not text.startswith("~"):

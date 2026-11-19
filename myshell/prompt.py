@@ -6,6 +6,7 @@ import sys
 import time
 from typing import List, Optional
 
+from . import theme
 from .state import ShellState
 
 try:
@@ -13,7 +14,7 @@ try:
     # The libedit on macOS prints the text between \x01 and \x02 out of order, so no markers there.
     MARKERS = not (sys.platform == "darwin" and "libedit" in (_readline.__doc__ or ""))
 except ImportError:
-    MARKERS = True
+    MARKERS = False  # without readline, input() would print the markers
 
 
 # Prompt
@@ -184,14 +185,18 @@ def build_prompt(state: ShellState) -> str:
     custom = state.get_variable("PS1")
     if custom is not None:
         return expand_prompt(custom, state)
-    color = "NO_COLOR" not in os.environ and os.environ.get("TERM", "") not in ("", "dumb")
-    template = DEFAULT_PS1_COLOR if color else DEFAULT_PS1_PLAIN
+    th = theme.active()
+    color = th.colorful and theme.terminal_colors()
+    back = (r"\[\e[0m\]" + (r"\[\e[" + th.text + r"m\]" if th.text else "")) if color else ""
+    template = (r"\[\e[" + th.dir + r"m\]\w" + back + r" \$ ") if color else DEFAULT_PS1_PLAIN
+    tail = (r"\[\e[" + th.text + r"m\]") if color and th.text else ""
     branch = git_branch()
     if branch:
         # The branch name goes in as plain text. A backslash in it must not act as an escape.
         safe = branch.replace("\\", "\\\\")
-        shown = (r"\[\e[35m\](" + safe + r")\[\e[0m\]") if color else "(" + safe + ")"
+        shown = (r"\[\e[" + th.branch + r"m\](" + safe + ")" + back) if color else "(" + safe + ")"
         template = template.replace(r" \$ ", " " + shown + r" \$ ")
     if state.last_status != 0:
-        template = (FAILED_PREFIX_COLOR if color else FAILED_PREFIX_PLAIN) + template
-    return expand_prompt(template, state)
+        failed = (r"\[\e[" + th.fail + r"m\][\?]" + back + " ") if color else FAILED_PREFIX_PLAIN
+        template = failed + template
+    return expand_prompt(template + tail, state)

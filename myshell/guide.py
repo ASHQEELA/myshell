@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, List, Optional, TextIO
 
-from . import compat, history, progress, quiz
+from . import compat, history, progress, quiz, theme
 from .state import ShellState
 
 # --- the character ---------------------------------------------------------
@@ -40,7 +40,7 @@ MOODS = {  # mood: (eyes, mouth)
     "wow": ("* *", "O"),
 }
 ART_WIDTH = 7
-YELLOW, RESET = "\x1b[33m", "\x1b[0m"
+RESET = "\x1b[0m"
 
 
 def pip_lines(mood: str = "happy") -> List[str]:
@@ -61,8 +61,7 @@ def bubble(text: str, width: int) -> List[str]:
 
 
 def use_color(out: TextIO) -> bool:
-    return (hasattr(out, "isatty") and out.isatty() and "NO_COLOR" not in os.environ
-            and os.environ.get("TERM", "") not in ("", "dumb"))
+    return hasattr(out, "isatty") and out.isatty() and theme.terminal_colors()
 
 
 def render(text: str, mood: str = "happy", color: bool = False, columns: int = 80) -> str:
@@ -75,7 +74,9 @@ def render(text: str, mood: str = "happy", color: bool = False, columns: int = 8
     for i in range(rows):
         face = art[i] if i < len(art) else " " * ART_WIDTH
         if color and i < len(art):
-            face = YELLOW + face + RESET
+            active = theme.active()
+            if active.colorful:
+                face = active.sgr(active.pip) + face + theme.text_reset()
         out.append(f"{face}  {box[i] if i < len(box) else ''}".rstrip())
     return "\n".join(out)
 
@@ -283,7 +284,7 @@ Case                case $X in a|b) cmds;; *.txt) cmds;; *) cmds;; esac
 Loops               for X in a b; do ..; done    while C; do ..; done    until C; do ..; done
 Loop control        break    continue    break 2
 Jobs                cmd &    jobs    fg    bg    wait    Ctrl+C    Ctrl+Z
-Builtins            cd pwd echo printf read alias unalias type which export unset set env
+Builtins            cd pwd echo printf read alias unalias type which export unset set env theme
                     source exec trap shift local history true false : exit
 Files and text      ls cat head tr wc grep touch mkdir rm cp mv sleep
 Set options         set -e (stop on error)   set -u (unset is error)   set -x (trace)

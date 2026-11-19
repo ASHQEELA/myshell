@@ -167,3 +167,13 @@ def pty_shell(dirs):
     yield start
     for s in sessions:
         s.close()
+
+
+@pytest.fixture(autouse=True)
+def _fresh_theme(monkeypatch):
+    """Every test starts with the default theme, whatever an earlier test chose."""
+    from myshell import theme
+    monkeypatch.delenv("MYSHELL_THEME", raising=False)
+    theme.reset()
+    yield
+    theme.reset()

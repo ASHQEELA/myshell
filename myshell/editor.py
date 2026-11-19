@@ -9,7 +9,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from . import history
 from .completion import complete_line
-from .highlight import STYLES, tokenize_for_color
+from . import theme
+from .highlight import tokenize_for_color
 from .state import ShellState
 
 SUGGESTION_STYLE = "fg:#888888"
@@ -70,7 +71,7 @@ def _build(state: ShellState, input: Any, output: Any) -> Any:
     from prompt_toolkit.history import History
     from prompt_toolkit.lexers import Lexer
     from prompt_toolkit.shortcuts import CompleteStyle
-    from prompt_toolkit.styles import Style
+    from prompt_toolkit.styles import DynamicStyle, Style
 
     class ShellHistory(History):
         """The shell's own history list, newest first. Lines are added by the shell."""
@@ -148,7 +149,10 @@ def _build(state: ShellState, input: Any, output: Any) -> Any:
 
     bindings.add("right", filter=at_end_without_suggestion)(accept_now)
     bindings.add("end", filter=at_end_without_suggestion)(accept_now)
-    style = Style.from_dict(dict(STYLES, **{"auto-suggestion": SUGGESTION_STYLE}))
+    def current_style() -> Any:
+        t = theme.active()
+        return Style.from_dict(dict(t.syntax, **{"auto-suggestion": t.suggestion or SUGGESTION_STYLE}))
+    style = DynamicStyle(current_style)
     kwargs: Dict[str, Any] = {}
     if input is not None:
         kwargs["input"] = input

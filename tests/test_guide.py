@@ -41,7 +41,7 @@ class TestCharacter:
 
     def test_render_adds_color_only_when_asked(self):
         assert "\x1b[" not in guide.render("x", color=False)
-        assert guide.YELLOW in guide.render("x", color=True)
+        assert "\x1b[33m" in guide.render("x", color=True)
 
     def test_narrow_terminal_still_renders(self):
         assert "hi" in guide.render("hi", columns=10)

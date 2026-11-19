@@ -16,6 +16,7 @@ from .errors import ShellError, ShellExit
 from .executor import Executor
 from .guide import greeting, guide_enabled, missing_hint, say, syntax_hint
 from .editor import make_reader
+from . import theme
 from .prompt import build_continuation_prompt, build_prompt, slow_notice
 from .state import ShellState
 
@@ -98,6 +99,10 @@ def run_interactive(state: ShellState) -> int:
                 except EOFError:
                     return None
             state.missing_command = None
+            tint = theme.text_start() if interactive else ""
+            if tint:
+                sys.stdout.write(tint)  # the theme's text color covers what the command prints
+                sys.stdout.flush()
             started = time.monotonic()
             try:
                 state.execute(line, read_more)
@@ -111,6 +116,9 @@ def run_interactive(state: ShellState) -> int:
             except KeyboardInterrupt:
                 print()
             state.last_duration = time.monotonic() - started
+            if tint:
+                sys.stdout.write("\x1b[0m")
+                sys.stdout.flush()
             if interactive:
                 state.save_history()  # saved after every line, so a killed shell loses nothing
             if state.pending_traps:

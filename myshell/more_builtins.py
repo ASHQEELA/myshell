@@ -6,6 +6,9 @@ import shutil
 import signal
 from typing import Callable, Dict, List, Optional, TextIO
 
+import difflib
+
+from . import theme
 from .errors import ReturnFromFunction, ShellExit
 from .state import ShellState
 
@@ -526,7 +529,47 @@ def builtin_trap(state: ShellState, args: List[str], stdout: TextIO, stderr: Tex
     return status
 
 
+def builtin_theme(state: ShellState, args: List[str], stdout: TextIO, stderr: TextIO) -> int:
+    """theme: list the themes. theme NAME: switch and remember. theme reset: back to default."""
+    color = hasattr(stdout, "isatty") and stdout.isatty() and theme.terminal_colors()
+    if args and args[0] in ("-h", "--help"):
+        print("usage: theme [NAME | reset]\n  theme          list the themes\n"
+              "  theme NAME     use a theme and remember it\n  theme reset    go back to the default",
+              file=stdout)
+        return 0
+    if not args:
+        now = theme.active().name
+        for t in theme.THEMES.values():
+            mark = "*" if t.name == now else " "
+            print(f"{mark} {t.name:<8} {theme.sample(t, color)}  {t.about}", file=stdout)
+        if hasattr(stdout, "isatty") and stdout.isatty():
+            why = theme.colors_off_reason()
+            if why:
+                print(f"Colors are off: {why}.", file=stdout)
+        if os.environ.get("MYSHELL_THEME"):
+            print(f"MYSHELL_THEME={os.environ['MYSHELL_THEME']} sets the theme at start.", file=stdout)
+        return 0
+    if len(args) > 1:
+        print("theme: too many arguments", file=stderr)
+        return 2
+    name = theme.DEFAULT if args[0] == "reset" else args[0].lower()
+    if name not in theme.THEMES:
+        close = difflib.get_close_matches(name, theme.names(), n=1)
+        hint = f" Did you mean '{close[0]}'?" if close else ""
+        print(f"theme: unknown theme '{args[0]}'.{hint} Run theme to see the list.", file=stderr)
+        return 1
+    chosen = theme.select(name)
+    if color:
+        stdout.write(theme.text_start())  # the message already shows the new text color
+    print(f"Theme: {name}", file=stdout)
+    why = theme.colors_off_reason(chosen) if name != "mono" else ""
+    if why and hasattr(stdout, "isatty") and stdout.isatty():
+        print(f"Colors are off: {why}.", file=stdout)
+    return 0
+
+
 EXTRA_BUILTINS: Dict[str, Builtin] = {
+    "theme": builtin_theme,
     "true": builtin_true,
     "false": builtin_false,
     ":": builtin_true,
