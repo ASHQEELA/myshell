@@ -114,7 +114,9 @@ def build_lessons() -> List[Lesson]:
                         "a trailing & starts one, jobs lists them and wait waits.")])
     return [
         Lesson("basics", "First steps", "run commands and move around", [
-            Step("A shell runs commands. echo prints text.", "echo hello from myshell"),
+            Step("A shell runs commands. echo prints text. Put the text in quotes. "
+                 "The shell removes the quotes, so echo prints only the words.",
+                 'echo "hello from myshell"'),
             Step("pwd shows the folder you are in.", "pwd"),
             Step("cd moves you to another folder. cd - jumps back.", "cd / && pwd && cd -"),
             Step("Tab completes commands and file names. Press it twice to see choices. "
@@ -122,9 +124,9 @@ def build_lessons() -> List[Lesson]:
         ]),
         Lesson("pipes", "Pipes and files", "connect commands and save output", [
             Step("A pipe sends the output of one command into the next.",
-                 "echo hello | tr a-z A-Z"),
+                 'echo "hello" | tr a-z A-Z'),
             Step("> writes output to a file. >> adds to the end of a file.",
-                 f"echo first > {demo}; echo second >> {demo}; cat {demo}; rm {demo}"),
+                 f'echo "first" > {demo}; echo "second" >> {demo}; cat {demo}; rm {demo}'),
             Step("2>&1 sends error messages down the same path as normal output.",
                  "ls /no/such/folder 2>&1 | head -1"),
             Step("A here-string feeds a line of text to a command as input.",
@@ -134,17 +136,22 @@ def build_lessons() -> List[Lesson]:
         ]),
         Lesson("variables", "Variables and math", "store values and calculate", [
             Step("Set a variable with NAME=value. Read it with $NAME.",
-                 "demo=world; echo hello $demo; unset demo"),
+                 'demo=world; echo "hello $demo"; unset demo'),
             Step("Put math inside $(( )). It handles + - * / % and more.",
                  "echo $((6 * 7))"),
             Step("Variables work inside math too, with += and similar.",
-                 "n=5; n=$((n + 1)); echo n is $n; unset n"),
+                 'n=5; n=$((n + 1)); echo "n is $n"; unset n'),
             Step("$( ) captures the output of a command. Backticks do the same.",
-                 "echo I am in $(pwd)"),
+                 'echo "I am in $(pwd)"'),
             Step("$? holds the exit status of the last command. 0 means success.",
                  "true; echo $?; false; echo $?"),
         ]),
         Lesson("quotes", "Quotes and wildcards", "control what the shell changes", [
+            Step("Quotes mark where text starts and ends. The shell removes them before the "
+                 "command runs, so echo prints the words without the quote marks.",
+                 'echo "hello"'),
+            Step("To print the quote marks, put them inside the other kind of quote.",
+                 """echo '"hello"'"""),
             Step("Single quotes keep text exactly as typed.",
                  "echo '$HOME stays as typed'"),
             Step("Double quotes allow variables and keep spaces together.",
@@ -157,15 +164,15 @@ def build_lessons() -> List[Lesson]:
         ]),
         Lesson("logic", "Choices and loops", "decide and repeat", [
             Step("&& runs the next command only after success. || runs it after failure.",
-                 "true && echo yes; false || echo fallback"),
+                 'true && echo "yes"; false || echo "fallback"'),
             Step("if tests a condition. [ ] compares numbers, text and files.",
-                 "if [ 3 -gt 2 ]; then echo bigger; else echo smaller; fi"),
+                 'if [ 3 -gt 2 ]; then echo "bigger"; else echo "smaller"; fi'),
             Step("for repeats a command for each item in a list.",
-                 "for n in 1 2 3; do echo number $n; done"),
+                 'for n in 1 2 3; do echo "number $n"; done'),
             Step("while repeats as long as a test passes. break leaves a loop early.",
-                 "i=0; while [ $i -lt 5 ]; do i=$((i+1)); [ $i = 3 ] && break; echo i is $i; done; unset i"),
+                 'i=0; while [ $i -lt 5 ]; do i=$((i+1)); [ $i = 3 ] && break; echo "i is $i"; done; unset i'),
             Step("File tests: -f is a file, -d is a folder, -e exists.",
-                 "[ -d . ] && echo . is a folder"),
+                 '[ -d . ] && echo ". is a folder"'),
         ]),
         Lesson("jobs", "Background jobs", "run several things at once", [
             *background,
@@ -174,7 +181,7 @@ def build_lessons() -> List[Lesson]:
         ]),
         Lesson("functions", "Functions and arguments", "name a few commands and reuse them", [
             Step("A function groups commands under a name. Call it like any command.",
-                 "pip_hi() { echo hello $1; }; pip_hi Pip"),
+                 'pip_hi() { echo "hello $1"; }; pip_hi Pip'),
             Step("$1, $2 ... are the arguments. $# counts them. $@ lists them all.",
                  'pip_args() { echo "$# arguments: $@"; }; pip_args one "two words" three'),
             Step('Use "$@" in quotes to pass every argument on, with spaces kept.',
@@ -185,7 +192,7 @@ def build_lessons() -> List[Lesson]:
                  "x=outside; pip_local() { local x=inside; echo $x; }; pip_local; echo $x; unset x"),
             Step("A for loop with no list walks over the arguments. Scripts get arguments too: "
                  "myshell script.sh a b makes $1 equal to a.",
-                 "pip_walk() { for a; do echo item $a; done; }; pip_walk x y; "
+                 'pip_walk() { for a; do echo "item $a"; done; }; pip_walk x y; '
                  "unset -f pip_hi pip_args pip_each pip_check pip_local pip_walk"),
         ]),
         Lesson("expansion", "Expansions", "defaults, trimming, replacing and braces", [
@@ -207,14 +214,14 @@ def build_lessons() -> List[Lesson]:
         ]),
         Lesson("case", "Case statements", "match one value against patterns", [
             Step("case compares a word with patterns. Each arm ends with ;;.",
-                 "case apple in apple) echo fruit;; carrot) echo vegetable;; esac"),
+                 'case apple in apple) echo "fruit";; carrot) echo "vegetable";; esac'),
             Step("Use | for several patterns and * as the catch-all.",
-                 "case notes.md in *.txt|*.md) echo text;; *.png) echo image;; *) echo other;; esac"),
+                 'case notes.md in *.txt|*.md) echo "text";; *.png) echo "image";; *) echo "other";; esac'),
             Step("Patterns can use ? and [ ] too.",
-                 "case 7 in [0-9]) echo one digit;; *) echo longer;; esac"),
+                 'case 7 in [0-9]) echo "one digit";; *) echo "longer";; esac'),
             Step("Inside a function, case makes a tidy menu.",
-                 "pip_do() { case $1 in start) echo starting;; stop) echo stopping;; "
-                 "*) echo unknown $1;; esac; }; pip_do start; pip_do jump; unset -f pip_do"),
+                 'pip_do() { case $1 in start) echo "starting";; stop) echo "stopping";; '
+                 '*) echo "unknown $1";; esac; }; pip_do start; pip_do jump; unset -f pip_do'),
         ]),
         Lesson("tools", "More builtins", "read, printf, set, env, which, trap and friends", [
             Step("read puts a line of input into variables. Here it reads a here-string.",
@@ -224,11 +231,11 @@ def build_lessons() -> List[Lesson]:
             Step("printf repeats its format for extra arguments.",
                  "printf '%s\\n' one two three"),
             Step("env lists the environment. env NAME=value command runs a command with that value.",
-                 "env PIP_COLOR=blue echo run with a temporary value"),
+                 'env PIP_COLOR=blue echo "run with a temporary value"'),
             Step("which tells how a name runs: builtin, alias, function or program path.",
-                 "alias pip_a='echo hi'; which echo pip_a; unalias pip_a"),
+                 'alias pip_a="echo hi"; which echo pip_a; unalias pip_a'),
             Step("trap runs a command when a signal or the shell exit arrives.",
-                 "trap 'echo goodbye from trap' EXIT; trap; trap - EXIT"),
+                 'trap "echo goodbye from trap" EXIT; trap; trap - EXIT'),
             Step("set -e stops a script at the first failure. set -u stops at an unset variable. "
                  "set -x prints each command. Turn one off with +e, +u or +x. "
                  "set -- a b c sets $1 $2 $3."),
@@ -308,7 +315,7 @@ TIPS = [
     "Use ${NAME:-default} to fall back to a default value.",
     "Use {1..5} or file.{txt,md} to save typing.",
     "Try guide quiz to test what you know.",
-    "Wrap repeated commands in a function: name() { echo hi; }.",
+    'Wrap repeated commands in a function: name() { echo "hi"; }.',
     "Type guide progress to see which lessons you finished.",
 ]
 
