@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Callable, List, Optional, TextIO
 
 from . import compat, history, progress, quiz, theme
+from .errors import ShellError
 from .state import ShellState
 
 # --- the character ---------------------------------------------------------
@@ -401,6 +402,25 @@ def make_ask() -> Ask:
     return ask
 
 
+def run_checked(state: ShellState, line: str, out: TextIO) -> None:
+    """Run a lesson line. Pip explains syntax errors and unknown commands."""
+    state.missing_command = None
+    try:
+        state.execute(line)
+    except ShellError as e:
+        print(e, file=sys.stderr)
+        state.last_status = 2
+        hint = syntax_hint(str(e))
+        say(hint or "That line has a syntax error. Check quotes, brackets, then and fi.",
+            "worried", out)
+    except Exception as e:  # a lesson must never close the shell
+        print(e, file=out)
+    if state.missing_command:
+        hint = missing_hint(state.missing_command, state)
+        if hint:
+            say(hint, "worried", out)
+
+
 def run_lesson(state: ShellState, lesson: Lesson, out: TextIO, ask: Ask) -> bool:
     """Teach one lesson. Returns False when the person stops or input ends."""
     say(f"{lesson.title}: {lesson.summary}.", "happy", out)
@@ -420,10 +440,13 @@ def run_lesson(state: ShellState, lesson: Lesson, out: TextIO, ask: Ask) -> bool
         if answer.lower() == "s":
             continue
         saved = state.last_status
-        try:
-            state.execute(step.command)
-        except Exception as e:  # a lesson must never close the shell
-            print(e, file=out)
+        typed = answer.strip()
+        line = typed if typed and typed.lower() not in ("y", "yes") else step.command
+        if line != step.command:
+            say("You typed your own version. I will run it and check it.", "think", out)
+        run_checked(state, line, out)
+        if line != step.command and state.last_status == 0:
+            say(f"It ran. The lesson used: {step.command.splitlines()[0]}", "happy", out)
         state.last_status = saved
         print(file=out)
     progress.mark_lesson(state.progress_file, lesson.key)
