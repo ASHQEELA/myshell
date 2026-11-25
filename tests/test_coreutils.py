@@ -23,7 +23,8 @@ def write(path, text):
 
 
 def test_the_table_has_every_command():
-    assert set(PORTABLE) == set("ls cat head tr sleep mkdir rm cp mv touch wc grep".split())
+    core = set("ls cat head tr sleep mkdir rm cp mv touch wc grep".split())
+    assert core <= set(PORTABLE)  # ps, top and nano join the table when builtins loads
 
 
 class TestLs:
