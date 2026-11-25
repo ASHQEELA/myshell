@@ -166,7 +166,7 @@ def test_real_task_writes_the_log(state, dirs, monkeypatch):
     code, out, _ = run(sched.builtin_cron, state, ["log"])
     assert "from-cron-task" in out
     assert run(sched.builtin_cron, state, ["log", "--clear"])[0] == 0
-    assert not log.exists()
+    assert not log.exists() or log.read_text() == ""
 
 
 def test_shell_commands(sh):

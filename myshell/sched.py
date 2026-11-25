@@ -531,8 +531,14 @@ def _cron_log(args: List[str], stdout: TextIO, stderr: TextIO) -> int:
     if args and args[0] == "--clear":
         try:
             os.remove(log_file())
-        except OSError:
+        except FileNotFoundError:
             pass
+        except OSError:
+            try:
+                open(log_file(), "w").close()  # Windows: a running task still holds the file
+            except OSError:
+                print("cron log: could not clear the log", file=stderr)
+                return 1
         print("cron log cleared", file=stdout)
         return 0
     count = 20
