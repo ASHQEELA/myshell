@@ -7,6 +7,7 @@ from typing import Callable, Dict, List, Optional, TextIO
 from .paths import expand_user
 from . import compat, history
 from .coreutils import PORTABLE
+from . import procs, sched, textedit
 from .more_builtins import EXTRA_BUILTINS, unescape
 from .errors import BreakLoop, ContinueLoop, ReturnFromFunction, ShellError, ShellExit
 from .state import ShellState
@@ -145,6 +146,10 @@ def builtin_type(state: ShellState, args: List[str], stdout: TextIO, stderr: Tex
 
 def builtin_jobs(state: ShellState, args: List[str], stdout: TextIO, stderr: TextIO) -> int:
     if not compat.HAS_FORK:
+        for number, proc in enumerate(state.background_jobs, 1):
+            if proc.poll() is None:
+                args_ = proc.args if isinstance(proc.args, str) else " ".join(map(str, proc.args))
+                print(f"[{number}]  Running  pid {proc.pid}  {args_}", file=stdout)
         return 0
     jc = state.jobs
     jc.refresh()
@@ -488,3 +493,6 @@ BUILTINS: Dict[str, Builtin] = {
     "continue": builtin_continue,
 }
 BUILTINS.update(EXTRA_BUILTINS)
+for _mod in (procs, sched, textedit):
+    BUILTINS.update(_mod.BUILTINS)
+    PORTABLE.update(getattr(_mod, "PORTABLE", {}))

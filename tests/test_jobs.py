@@ -114,3 +114,14 @@ class TestJobControl:
         text = jc.format(j)
         assert text.startswith("[1]+  Running")
         assert text.endswith("cmd0 &")
+
+
+def test_portable_jobs_lists_and_kill_stops_a_background_process(run_cli):
+    """The no-fork path (Windows): jobs lists the process, kill %1 ends it."""
+    import sys
+    py = sys.executable.replace("\\", "/")
+    r = run_cli(["-c", f'"{py}" -c "import time; time.sleep(30)" &\njobs\nkill %1\n'
+                 'echo status=$?\nkill %9\necho bad=$?'], portable=True)
+    assert "Running" in r.out and "pid" in r.out
+    assert "status=0" in r.out and "bad=1" in r.out
+    assert "kill: %9: no such job" in r.err

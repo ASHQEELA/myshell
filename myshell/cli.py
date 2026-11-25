@@ -16,8 +16,9 @@ from .errors import ShellError, ShellExit
 from .executor import Executor
 from .guide import greeting, guide_enabled, missing_hint, say, syntax_hint
 from .editor import make_reader
-from . import theme
+from . import sched, theme
 from .prompt import build_continuation_prompt, build_prompt, slow_notice
+from .paths import home_file
 from .state import ShellState
 
 
@@ -58,22 +59,26 @@ def run_noninteractive(state: ShellState, text: str, label: str) -> int:
     return code
 
 
-def run_interactive(state: ShellState) -> int:
+def run_interactive(state: ShellState, use_rc: bool = True) -> int:
     state.jobs.init_terminal()
     state.load_history()
     setup_readline(state)
     reader = make_reader(state)  # None means plain input() with readline
     code = 0
     try:
-        if os.path.isfile(state.rc_file):
+        if use_rc and os.path.isfile(state.rc_file):
             from .builtins import source_file
             source_file(state, state.rc_file, sys.stderr)
             state.last_status = 0
         interactive = sys.stdin.isatty()  # scripts piped in keep the plain "$ " prompt
+        if interactive:
+            sched.start_background()
         if interactive and guide_enabled(state):
             greeting(state, sys.stdout)
         while True:
             state.reap_jobs()
+            for notice in sched.SCHEDULER.take_notices():
+                print(notice)
             try:
                 try:
                     prompt = build_prompt(state) if interactive else "$ "
@@ -133,15 +138,53 @@ def run_interactive(state: ShellState) -> int:
                     say(hint, "worried")
     except ShellExit as e:
         code = e.code
+    sched.SCHEDULER.stop()
     state.last_status = code
     run_exit_trap(state)
     state.save_history()
     return code
 
 
+USAGE = """usage: myshell [--norc] [--rcfile FILE] [-c COMMAND [NAME ARG...] | SCRIPT [ARG...]]
+  myshell                 start the interactive shell
+  myshell -c 'echo hi'    run one command and exit
+  myshell script.msh a b  run a script file. $0 is the script, $1 and $2 are a and b
+  --norc                  do not read ~/.myshellrc
+  --rcfile FILE           read FILE instead of ~/.myshellrc (or set MYSHELLRC)
+  --version               print the version"""
+
+
+def package_version() -> str:
+    try:
+        from importlib.metadata import version
+        return version("myshell-py")
+    except Exception:
+        return "unknown"
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     state = new_shell()
+    use_rc = True
+    while argv and argv[0] in ("--norc", "--rcfile", "--version", "-V", "--help", "-h"):
+        flag = argv[0]
+        if flag == "--norc":
+            use_rc = False
+            argv = argv[1:]
+        elif flag == "--rcfile":
+            if len(argv) < 2:
+                print("myshell: --rcfile: option requires an argument", file=sys.stderr)
+                return 2
+            state.rc_file = argv[1]
+            argv = argv[2:]
+        elif flag in ("--version", "-V"):
+            print(f"myshell {package_version()}")
+            return 0
+        else:
+            print(USAGE)
+            return 0
+    if os.environ.get("MYSHELLRC") and state.rc_file == home_file(".myshellrc"):
+        state.rc_file = os.environ["MYSHELLRC"]
     if argv and argv[0] == "-c":
         if len(argv) < 2:
             print("myshell: -c: option requires an argument", file=sys.stderr)
@@ -160,4 +203,4 @@ def main(argv: Optional[List[str]] = None) -> int:
         state.script_name = argv[0]
         state.positional = list(argv[1:])
         return run_noninteractive(state, text, argv[0])
-    return run_interactive(state)
+    return run_interactive(state, use_rc)

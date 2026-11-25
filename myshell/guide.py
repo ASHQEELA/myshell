@@ -294,7 +294,9 @@ Loop control        break    continue    break 2
 Jobs                cmd &    jobs    fg    bg    wait    Ctrl+C    Ctrl+Z
 Builtins            cd pwd echo printf read alias unalias type which export unset set env theme
                     source exec trap shift local history true false : exit
-Files and text      ls cat head tr wc grep touch mkdir rm cp mv sleep
+Files and text      ls cat head tr wc grep touch mkdir rm cp mv sleep    edit FILE
+Processes           ps    ps -e    top    kill PID    kill -9 PID    kill %1
+Scheduling          cron add '*/5 * * * *' cmd    cron    at 17:30 cmd    at +10m cmd
 Set options         set -e (stop on error)   set -u (unset is error)   set -x (trace)
 Typing              Ctrl+R search history    Right arrow takes the suggestion
 Guide               guide    guide TOPIC    guide cheat    guide tip    guide quiz    guide progress"""
