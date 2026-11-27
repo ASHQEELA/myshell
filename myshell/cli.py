@@ -145,10 +145,11 @@ def run_interactive(state: ShellState, use_rc: bool = True) -> int:
     return code
 
 
-USAGE = """usage: myshell [--norc] [--rcfile FILE] [-c COMMAND [NAME ARG...] | SCRIPT [ARG...]]
+USAGE = """usage: myshell [--tui] [--norc] [--rcfile FILE] [-c COMMAND [NAME ARG...] | SCRIPT [ARG...]]
   myshell                 start the interactive shell
   myshell -c 'echo hi'    run one command and exit
   myshell script.msh a b  run a script file. $0 is the script, $1 and $2 are a and b
+  --tui                   open the full-screen app (panels for commands, files, processes, tasks)
   --norc                  do not read ~/.myshellrc
   --rcfile FILE           read FILE instead of ~/.myshellrc (or set MYSHELLRC)
   --version               print the version"""
@@ -166,10 +167,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     state = new_shell()
     use_rc = True
-    while argv and argv[0] in ("--norc", "--rcfile", "--version", "-V", "--help", "-h"):
+    want_tui = False
+    while argv and argv[0] in ("--norc", "--rcfile", "--tui", "--version", "-V", "--help", "-h"):
         flag = argv[0]
         if flag == "--norc":
             use_rc = False
+            argv = argv[1:]
+        elif flag == "--tui":
+            want_tui = True
             argv = argv[1:]
         elif flag == "--rcfile":
             if len(argv) < 2:
@@ -203,4 +208,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         state.script_name = argv[0]
         state.positional = list(argv[1:])
         return run_noninteractive(state, text, argv[0])
+    if want_tui:
+        from .tui import run_tui
+        return run_tui(state, use_rc)
     return run_interactive(state, use_rc)

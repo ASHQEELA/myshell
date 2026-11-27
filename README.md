@@ -22,6 +22,7 @@ From a clone:
     python shell.py -c "echo hi"     run one command string
     python shell.py script.sh a b    run a script. $1 is a, $2 is b
     python -m myshell                same thing, as a package
+    python -m myshell --tui          the full-screen app
     uv run myshell                   uses pyproject.toml
 
 `myshell -c 'cmd' NAME ARG...` sets `$0` to NAME and `$1...` to the ARGs.
@@ -187,6 +188,26 @@ Example `~/.myshellrc`:
     PS2='more> '
     alias ll='ls -l'
 
+## Full-screen app
+
+    myshell --tui      or type  tui  inside the shell
+
+Four framed panels: Commands, Files, Processes and Schedule. The colors follow your `theme`.
+A narrow window shows fewer panels. Under 96 columns only Commands shows. F2, F3 and F4 open a hidden panel full screen.
+
+| Key | Action |
+| --- | --- |
+| `F1` | help |
+| `F2` `F3` `F4` | files, processes, schedule |
+| `Tab` `Esc` `F5` | next panel, back to commands |
+| `z` | zoom the panel |
+| `Ctrl+Q` | quit |
+
+Commands: Enter runs, Up and Down walk the history, Tab completes, Right accepts the grey hint, Ctrl+C stops a running command. Output stays in the panel. `edit`, `less`, `guide` and `top` pause the screen and use the real terminal. Start a line with `!` to do the same for any program.
+Files: Enter opens a folder or edits a file, `h` goes up, `i` puts the name on the command line, `.` shows hidden files.
+Processes: `x` stops the process, `X` force kills it, `s` changes the sort.
+Schedule: `a` adds a task, `d` removes it, `r` runs a cron task now.
+
 ## Layout
 
 | File | Job |
@@ -210,6 +231,7 @@ Example `~/.myshellrc`:
 | `procs.py` | ps, top, kill |
 | `textedit.py` | the `edit` and `nano` editor |
 | `sched.py` | cron and at |
+| `tui.py` `tui_theme.py` | the full-screen app and its colors |
 | `guide.py` | Pip: lessons, hints, greeting |
 | `state.py` | variables, aliases, history, status |
 | `compat.py` | platform checks |

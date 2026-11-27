@@ -492,6 +492,13 @@ BUILTINS: Dict[str, Builtin] = {
     "break": builtin_break,
     "continue": builtin_continue,
 }
+def builtin_tui(state: ShellState, args: List[str], stdout: TextIO, stderr: TextIO) -> int:
+    """tui: open the full-screen app. Close it with Ctrl+Q."""
+    from .tui import run_tui
+    return run_tui(state, use_rc=False)
+
+
+BUILTINS["tui"] = builtin_tui
 BUILTINS.update(EXTRA_BUILTINS)
 for _mod in (procs, sched, textedit):
     BUILTINS.update(_mod.BUILTINS)
